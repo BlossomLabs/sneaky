@@ -2,6 +2,7 @@ import { useState, useCallback, type FormEvent } from "react"
 import { ConnectButton } from "@rainbow-me/rainbowkit"
 import { useAccount } from "wagmi"
 import { normalize } from "viem/ens"
+import { Link } from "react-router"
 import { Card, CardContent, CardHeader, CardTitle } from "~/components/ui/card"
 import { Input } from "~/components/ui/input"
 import { Button } from "~/components/ui/button"
@@ -205,6 +206,13 @@ export default function Home() {
               <span className="font-medium">{lookupName}</span>.
             </p>
           )}
+
+          <Link
+            to="/wallet"
+            className="text-xs text-muted-foreground underline underline-offset-2 hover:text-foreground"
+          >
+            View my stealth wallet
+          </Link>
         </CardContent>
       </Card>
     </div>

@@ -1,3 +1,21 @@
+if (typeof globalThis.Buffer === "undefined") {
+  globalThis.Buffer = {
+    from(data: string | Uint8Array, encoding?: string): Uint8Array {
+      if (typeof data === "string") {
+        if (encoding === "hex") {
+          const bytes = new Uint8Array(data.length / 2)
+          for (let i = 0; i < data.length; i += 2) {
+            bytes[i / 2] = parseInt(data.substring(i, i + 2), 16)
+          }
+          return bytes
+        }
+        return new TextEncoder().encode(data)
+      }
+      return new Uint8Array(data)
+    },
+  } as unknown as typeof Buffer
+}
+
 import {
   Links,
   Meta,
