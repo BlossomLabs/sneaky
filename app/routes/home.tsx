@@ -1,15 +1,19 @@
 import { useState, useCallback, type FormEvent } from "react"
-import { ConnectButton } from "@rainbow-me/rainbowkit"
-import { useAccount } from "wagmi"
-import { normalize } from "viem/ens"
 import { Link } from "react-router"
+import { ConnectButton } from "@rainbow-me/rainbowkit"
+import { useAccount, usePublicClient } from "wagmi"
+import { mainnet } from "viem/chains"
+import { normalize, namehash } from "viem/ens"
 import { Card, CardContent, CardHeader, CardTitle } from "~/components/ui/card"
 import { Input } from "~/components/ui/input"
 import { Button } from "~/components/ui/button"
 import { Badge } from "~/components/ui/badge"
 import { Alert, AlertDescription } from "~/components/ui/alert"
 import { fetchStatus, type StatusResponse } from "~/utils/gateway"
+import { ENS_REGISTRY, ENS_REGISTRY_ABI } from "~/utils/ens"
 import { useRegister, type RegisterStep } from "~/hooks/use-register"
+import { useDeregister, type DeregisterStep } from "~/hooks/use-deregister"
+import type { Address } from "viem"
 
 const STEP_LABELS: Record<RegisterStep, string> = {
   idle: "",
@@ -21,16 +25,34 @@ const STEP_LABELS: Record<RegisterStep, string> = {
   done: "Registration complete",
 }
 
+const DEREG_STEP_LABELS: Record<DeregisterStep, string> = {
+  idle: "",
+  signing: "Sign deregistration message...",
+  deregistering: "Removing from gateway...",
+  "resetting-resolver": "Resetting ENS resolver...",
+  "confirming-tx": "Waiting for confirmation...",
+  done: "Resolver reset complete",
+}
+
 export default function Home() {
   const { address, isConnected } = useAccount()
+  const mainnetClient = usePublicClient({ chainId: mainnet.id })
   const [nameInput, setNameInput] = useState("")
   const [lookupName, setLookupName] = useState("")
   const [status, setStatus] = useState<StatusResponse | null>(null)
+  const [ensOwner, setEnsOwner] = useState<Address | null>(null)
   const [lookupLoading, setLookupLoading] = useState(false)
   const [lookupError, setLookupError] = useState<string | null>(null)
 
   const { register, reset, step, isLoading, error, txHash } =
     useRegister(lookupName)
+  const {
+    deregister,
+    reset: resetDeregister,
+    step: deregStep,
+    error: deregError,
+    txHash: deregTxHash,
+  } = useDeregister(lookupName)
 
   const handleLookup = useCallback(
     async (e?: FormEvent) => {
@@ -40,7 +62,9 @@ export default function Home() {
 
       setLookupError(null)
       setStatus(null)
+      setEnsOwner(null)
       reset()
+      resetDeregister()
 
       let normalized: string
       try {
@@ -54,8 +78,19 @@ export default function Home() {
       setLookupLoading(true)
 
       try {
-        const result = await fetchStatus(normalized)
+        const [result, owner] = await Promise.all([
+          fetchStatus(normalized),
+          mainnetClient
+            ? mainnetClient.readContract({
+                address: ENS_REGISTRY,
+                abi: ENS_REGISTRY_ABI,
+                functionName: "owner",
+                args: [namehash(normalized)],
+              })
+            : Promise.resolve(null),
+        ])
         setStatus(result)
+        setEnsOwner(owner as Address | null)
       } catch (err) {
         setLookupError(
           err instanceof Error ? err.message : "Failed to check status",
@@ -64,10 +99,18 @@ export default function Home() {
         setLookupLoading(false)
       }
     },
-    [nameInput, reset],
+    [nameInput, reset, resetDeregister, mainnetClient],
   )
 
-  const showSetup = status && !status.registered && isConnected
+  const isOwner =
+    isConnected &&
+    !!address &&
+    !!ensOwner &&
+    address.toLowerCase() === ensOwner.toLowerCase()
+
+  const showSetup = status && !status.registered && isOwner
+  const showNotOwner =
+    status && !status.registered && isConnected && !isOwner && ensOwner
   const showStatus = status && status.registered
 
   return (
@@ -125,6 +168,66 @@ export default function Home() {
                   <span className="font-mono">{status.nonce}</span>
                 </div>
               </div>
+
+              {isOwner && deregStep === "idle" && (
+                <Button
+                  variant="destructive"
+                  size="sm"
+                  onClick={deregister}
+                >
+                  Reset Resolver
+                </Button>
+              )}
+
+              {deregStep !== "idle" && deregStep !== "done" && (
+                <div className="flex flex-col gap-2">
+                  <div className="flex items-center gap-2">
+                    <div className="h-4 w-4 animate-spin rounded-full border-2 border-primary border-t-transparent" />
+                    <span className="text-sm">{DEREG_STEP_LABELS[deregStep]}</span>
+                  </div>
+                  {deregError && (
+                    <Alert variant="destructive">
+                      <AlertDescription>{deregError}</AlertDescription>
+                    </Alert>
+                  )}
+                  {deregError && (
+                    <Button variant="outline" size="sm" onClick={resetDeregister}>
+                      Try again
+                    </Button>
+                  )}
+                </div>
+              )}
+
+              {deregStep === "done" && (
+                <div className="flex flex-col gap-2">
+                  <Alert>
+                    <AlertDescription>
+                      Resolver has been reset for{" "}
+                      <span className="font-medium">{lookupName}</span>.
+                    </AlertDescription>
+                  </Alert>
+                  {deregTxHash && (
+                    <a
+                      href={`https://etherscan.io/tx/${deregTxHash}`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="text-xs text-muted-foreground underline underline-offset-2 hover:text-foreground"
+                    >
+                      View transaction on Etherscan
+                    </a>
+                  )}
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => {
+                      resetDeregister()
+                      handleLookup()
+                    }}
+                  >
+                    Refresh status
+                  </Button>
+                </div>
+              )}
             </div>
           )}
 
@@ -198,6 +301,13 @@ export default function Home() {
                 Refresh status
               </Button>
             </div>
+          )}
+
+          {showNotOwner && (
+            <p className="text-sm text-muted-foreground">
+              Only the ENS name owner can set up stealth addresses for{" "}
+              <span className="font-medium">{lookupName}</span>.
+            </p>
           )}
 
           {!isConnected && status && !status.registered && (

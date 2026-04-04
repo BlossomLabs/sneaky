@@ -147,6 +147,7 @@ interface UserData {
   spendingPublicKey: Hex;
   viewingKeyNode: string; // base58 xprv
   owner: Address;
+  previousResolver?: Address;
 }
 
 // ---------------------------------------------------------------------------
@@ -242,7 +243,7 @@ async function handleRegister(req: Request): Promise<Response> {
   const body = await req.json().catch(() => null);
   if (!body) return json({ error: "Invalid JSON" }, 400);
 
-  const { name, address, signature, spendingPublicKey, viewingKeyNode } = body;
+  const { name, address, signature, spendingPublicKey, viewingKeyNode, previousResolver } = body;
 
   if (typeof name !== "string" || !name.includes("."))
     return json({ error: "Invalid ENS name" }, 400);
@@ -275,7 +276,7 @@ async function handleRegister(req: Request): Promise<Response> {
   }
 
   // Step 1: Verify EIP-191 signature proves ownership of the claimed address
-  const message = `Register ${norm} on SecretHandshake`;
+  const message = `Register ${norm} on Sneaky`;
   const valid = await ensClient.verifyMessage({
     address: address as Address,
     message,
@@ -317,13 +318,18 @@ async function handleRegister(req: Request): Promise<Response> {
     );
   }
 
+  const userData: UserData = {
+    spendingPublicKey,
+    viewingKeyNode,
+    owner: (address as string).toLowerCase() as Address,
+  };
+  if (isAddr(previousResolver)) {
+    userData.previousResolver = previousResolver as Address;
+  }
+
   const commit = await kv
     .atomic()
-    .set(["users", norm], {
-      spendingPublicKey,
-      viewingKeyNode,
-      owner: (address as string).toLowerCase() as Address,
-    } satisfies UserData)
+    .set(["users", norm], userData)
     .set(["nonces", norm], new Deno.KvU64(0n))
     .commit();
 
@@ -331,6 +337,83 @@ async function handleRegister(req: Request): Promise<Response> {
 
   console.log(`Registered ${norm} (owner: ${address})`);
   return json({ ok: true, name: norm });
+}
+
+// ---------------------------------------------------------------------------
+// POST /deregister — remove registration and return previousResolver
+// ---------------------------------------------------------------------------
+
+async function handleDeregister(req: Request): Promise<Response> {
+  const body = await req.json().catch(() => null);
+  if (!body) return json({ error: "Invalid JSON" }, 400);
+
+  const { name, address, signature } = body;
+
+  if (typeof name !== "string" || !name.includes("."))
+    return json({ error: "Invalid ENS name" }, 400);
+  if (!isAddr(address))
+    return json({ error: "Invalid address" }, 400);
+  if (!isHex(signature))
+    return json({ error: "Invalid signature" }, 400);
+
+  let norm: string;
+  try {
+    norm = normalize(name);
+  } catch {
+    return json({ error: "Invalid ENS name (normalization failed)" }, 400);
+  }
+
+  const message = `Deregister ${norm} on SecretHandshake`;
+  const valid = await ensClient.verifyMessage({
+    address: address as Address,
+    message,
+    signature: signature as Hex,
+  });
+  if (!valid) return json({ error: "Signature verification failed" }, 403);
+
+  const node = namehash(norm);
+  let ensOwner: Address;
+  try {
+    ensOwner = await ensClient.readContract({
+      address: ENS_REGISTRY,
+      abi: ENS_REGISTRY_ABI,
+      functionName: "owner",
+      args: [node],
+    });
+  } catch (e) {
+    console.error("ENS Registry lookup failed:", e);
+    return json({ error: "ENS ownership check failed" }, 502);
+  }
+
+  if (
+    ensOwner !== zeroAddress &&
+    ensOwner.toLowerCase() !== (address as string).toLowerCase()
+  ) {
+    return json({ error: "Not the on-chain ENS name owner" }, 403);
+  }
+
+  const existing = await kv.get<UserData>(["users", norm]);
+  if (!existing.value) {
+    return json({ error: "Name not registered" }, 404);
+  }
+
+  if (existing.value.owner.toLowerCase() !== (address as string).toLowerCase()) {
+    return json({ error: "Not the registered owner" }, 403);
+  }
+
+  const previousResolver = existing.value.previousResolver ?? null;
+
+  const commit = await kv
+    .atomic()
+    .check(existing)
+    .delete(["users", norm])
+    .delete(["nonces", norm])
+    .commit();
+
+  if (!commit.ok) return json({ error: "KV commit failed" }, 500);
+
+  console.log(`Deregistered ${norm} (owner: ${address})`);
+  return json({ ok: true, previousResolver });
 }
 
 // ---------------------------------------------------------------------------
@@ -481,6 +564,11 @@ async function handleRequest(req: Request): Promise<Response> {
   // POST /register
   if (url.pathname === "/register" && req.method === "POST") {
     return handleRegister(req);
+  }
+
+  // POST /deregister
+  if (url.pathname === "/deregister" && req.method === "POST") {
+    return handleDeregister(req);
   }
 
   // POST / — CCIP-Read (EIP-3668)

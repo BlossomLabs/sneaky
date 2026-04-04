@@ -38,12 +38,38 @@ export interface RegisterBody {
   signature: Hex
   spendingPublicKey: Hex
   viewingKeyNode: string
+  previousResolver?: Address
 }
 
 export interface RegisterResponse {
   ok?: boolean
   name?: string
   error?: string
+}
+
+export interface DeregisterBody {
+  name: string
+  address: Address
+  signature: Hex
+}
+
+export interface DeregisterResponse {
+  ok?: boolean
+  previousResolver?: Address
+  error?: string
+}
+
+export async function postDeregister(
+  body: DeregisterBody,
+): Promise<DeregisterResponse> {
+  const res = await fetch(`${getGatewayUrl()}/deregister`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(body),
+  })
+  const data: DeregisterResponse = await res.json()
+  if (!res.ok) throw new Error(data.error ?? `POST /deregister failed: ${res.status}`)
+  return data
 }
 
 export async function postRegister(

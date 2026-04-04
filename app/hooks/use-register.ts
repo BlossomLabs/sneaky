@@ -122,6 +122,7 @@ export function useRegister(ensName: string) {
         signature: registrationSig,
         spendingPublicKey,
         viewingKeyNode: viewingKeyNodeXprv,
+        previousResolver: currentResolver as Address,
       })
       if (!regResult.ok) {
         throw new Error(regResult.error ?? "Gateway registration failed")
