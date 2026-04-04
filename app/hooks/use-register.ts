@@ -1,5 +1,5 @@
 import { useCallback, useState } from "react"
-import { useAccount, useSignMessage, useWriteContract, useWaitForTransactionReceipt, useSwitchChain } from "wagmi"
+import { useAccount, usePublicClient, useSignMessage, useWriteContract, useWaitForTransactionReceipt, useSwitchChain } from "wagmi"
 import { mainnet } from "viem/chains"
 import { normalize } from "viem/ens"
 import {
@@ -8,7 +8,7 @@ import {
   extractViewingPrivateKeyNode,
 } from "@fluidkey/stealth-account-kit"
 import { postRegister } from "~/utils/gateway"
-import { buildSetResolverArgs } from "~/utils/ens"
+import { ENS_REGISTRY, ENS_REGISTRY_ABI, buildSetResolverArgs } from "~/utils/ens"
 import type { Address, Hex } from "viem"
 
 export type RegisterStep =
@@ -29,6 +29,7 @@ interface RegisterState {
 
 export function useRegister(ensName: string) {
   const { address, chainId } = useAccount()
+  const mainnetClient = usePublicClient({ chainId: mainnet.id })
   const { signMessageAsync } = useSignMessage()
   const { writeContractAsync } = useWriteContract()
   const { switchChainAsync } = useSwitchChain()
@@ -80,40 +81,52 @@ export function useRegister(ensName: string) {
         message: registrationMessage,
       })
 
-      // Step 3: Set resolver on-chain (mainnet)
+      // Step 3: Set resolver on-chain (mainnet) — skip if already correct
       setState((s) => ({ ...s, step: "setting-resolver" }))
-      if (chainId !== mainnet.id) {
-        await switchChainAsync({ chainId: mainnet.id })
+
+      if (!mainnetClient) throw new Error("Mainnet client not available")
+
+      const { namehash } = await import("viem/ens")
+      const node = namehash(normalizedName)
+      const currentResolver = await mainnetClient.readContract({
+        address: ENS_REGISTRY,
+        abi: ENS_REGISTRY_ABI,
+        functionName: "resolver",
+        args: [node],
+      })
+
+      let hash: Hex | undefined
+      if (currentResolver.toLowerCase() !== resolverAddress.toLowerCase()) {
+        if (chainId !== mainnet.id) {
+          await switchChainAsync({ chainId: mainnet.id })
+        }
+
+        const setResolverArgs = buildSetResolverArgs(normalizedName, resolverAddress)
+        hash = await writeContractAsync({
+          ...setResolverArgs,
+          chain: mainnet,
+        })
+
+        const confirmedHash = hash
+        setState((s) => ({ ...s, step: "confirming-tx", txHash: confirmedHash }))
+        setTxHash(confirmedHash)
+        await mainnetClient.waitForTransactionReceipt({ hash: confirmedHash })
       }
-
-      const setResolverArgs = buildSetResolverArgs(normalizedName, resolverAddress)
-      const hash = await writeContractAsync({
-        ...setResolverArgs,
-        chain: mainnet,
-      })
-
-      setState((s) => ({ ...s, step: "confirming-tx", txHash: hash }))
-      setTxHash(hash)
-
-      // Wait for confirmation by polling
-      const { createPublicClient, http } = await import("viem")
-      const publicClient = createPublicClient({
-        chain: mainnet,
-        transport: http(),
-      })
-      await publicClient.waitForTransactionReceipt({ hash })
 
       // Step 4: Register on gateway
       setState((s) => ({ ...s, step: "registering" }))
-      await postRegister({
+      const regResult = await postRegister({
         name: normalizedName,
         address,
         signature: registrationSig,
         spendingPublicKey,
         viewingKeyNode: viewingKeyNodeXprv,
       })
+      if (!regResult.ok) {
+        throw new Error(regResult.error ?? "Gateway registration failed")
+      }
 
-      setState({ step: "done", isLoading: false, error: null, txHash: hash })
+      setState({ step: "done", isLoading: false, error: null, txHash: hash ?? null })
     } catch (err) {
       const message = err instanceof Error ? err.message : String(err)
       setState((s) => ({

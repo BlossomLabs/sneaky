@@ -11,14 +11,18 @@ export const transports = {
     ? http(
         `https://eth-mainnet.g.alchemy.com/v2/${import.meta.env.VITE_ALCHEMY_API_KEY}`,
       )
-    : http(),
+    : import.meta.env.VITE_DRPC_API_KEY
+      ? http(
+          `https://lb.drpc.org/ogrpc?network=ethereum&dkey=${import.meta.env.VITE_DRPC_API_KEY}`,
+        )
+      : http(),
   [baseSepolia.id]: import.meta.env.VITE_ALCHEMY_API_KEY
     ? http(
         `https://base-sepolia.g.alchemy.com/v2/${import.meta.env.VITE_ALCHEMY_API_KEY}`,
       )
     : import.meta.env.VITE_DRPC_API_KEY
       ? http(
-          `https://lb.drpc.live/base-sepolia/${import.meta.env.VITE_DRPC_API_KEY}`,
+          `https://lb.drpc.org/ogrpc?network=base-sepolia&dkey=${import.meta.env.VITE_DRPC_API_KEY}`,
         )
       : http(),
 }

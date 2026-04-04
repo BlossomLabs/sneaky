@@ -6,6 +6,13 @@ export const ENS_REGISTRY: Address =
 
 export const ENS_REGISTRY_ABI = [
   {
+    name: "resolver",
+    type: "function",
+    stateMutability: "view",
+    inputs: [{ name: "node", type: "bytes32" }],
+    outputs: [{ name: "", type: "address" }],
+  },
+  {
     name: "setResolver",
     type: "function",
     stateMutability: "nonpayable",
