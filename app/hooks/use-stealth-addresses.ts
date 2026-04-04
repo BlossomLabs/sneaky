@@ -9,6 +9,7 @@ import {
   extractViewingPrivateKeyNode,
   generateEphemeralPrivateKey,
   generateStealthAddresses,
+  generateStealthPrivateKey,
 } from "@fluidkey/stealth-account-kit"
 import { fetchStatus } from "~/utils/gateway"
 import { transports } from "~/data/supported-chains"
@@ -27,6 +28,7 @@ export interface StealthEntry {
   address: Address
   nonce: number
   balance: bigint
+  stealthPrivateKey?: Hex
 }
 
 const BATCH_SIZE = 20
@@ -85,13 +87,20 @@ export function useStealthAddresses() {
         const viewingKeyNode = extractViewingPrivateKeyNode(viewingPrivateKey)
 
         // 4. Compute all stealth addresses (mirrors deno/main.ts generateStealth)
-        const allAddresses: { address: Address; nonce: number }[] = []
+        const allAddresses: {
+          address: Address
+          nonce: number
+          ephemeralPublicKey: Hex
+        }[] = []
         for (let i = 0; i < totalNonces; i++) {
           const { ephemeralPrivateKey } = generateEphemeralPrivateKey({
             viewingPrivateKeyNode: viewingKeyNode,
             nonce: BigInt(i),
             chainId: BASE_SEPOLIA_CHAIN_ID,
           })
+          const ephemeralPublicKey = privateKeyToAccount(
+            ephemeralPrivateKey,
+          ).publicKey as Hex
           const { stealthAddresses } = generateStealthAddresses({
             spendingPublicKeys: [spendingPublicKey],
             ephemeralPrivateKey,
@@ -99,6 +108,7 @@ export function useStealthAddresses() {
           allAddresses.push({
             address: stealthAddresses[0] as Address,
             nonce: i,
+            ephemeralPublicKey,
           })
         }
         setTotalScanned(totalNonces)
@@ -118,7 +128,16 @@ export function useStealthAddresses() {
           )
           chunk.forEach((a, j) => {
             if (balances[j] > 0n) {
-              funded.push({ ...a, balance: balances[j] })
+              const { stealthPrivateKey } = generateStealthPrivateKey({
+                spendingPrivateKey,
+                ephemeralPublicKey: a.ephemeralPublicKey,
+              })
+              funded.push({
+                address: a.address,
+                nonce: a.nonce,
+                balance: balances[j],
+                stealthPrivateKey,
+              })
             }
           })
         }
