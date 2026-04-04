@@ -8,7 +8,8 @@
     "dev": "react-router dev",
     "start": "react-router-serve ./build/server/index.js",
     "typecheck": "react-router typegen && tsc",
-    "format": "prettier --write \"**/*.{ts,tsx}\""
+    "format": "prettier --write \"**/*.{ts,tsx}\"",
+    "postinstall": "sed -i '' 's/const { createRequire } = await import(\"module\");/\\/\\/ patched for browser compat/' node_modules/@unlink-xyz/sdk/dist/index.js && sed -i '' 's/const require2 = createRequire(import.meta.url);//' node_modules/@unlink-xyz/sdk/dist/index.js && sed -i '' 's/return require2(\"@zk-kit\\/eddsa-poseidon\\/blake-2b\");/return await import(\"@zk-kit\\/eddsa-poseidon\\/blake-2b\");/' node_modules/@unlink-xyz/sdk/dist/index.js"
   },
   "dependencies": {
     "@fluidkey/stealth-account-kit": "^1.1.1",

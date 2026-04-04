@@ -1,3 +1,4 @@
+import path from "node:path"
 import { reactRouter } from "@react-router/dev/vite"
 import tailwindcss from "@tailwindcss/vite"
 import { defineConfig } from "vite"
@@ -9,6 +10,14 @@ export default defineConfig({
     reactRouter(),
     tsconfigPaths(),
   ],
+  resolve: {
+    alias: {
+      "@zk-kit/eddsa-poseidon/blake-2b": path.resolve(
+        __dirname,
+        "node_modules/@zk-kit/eddsa-poseidon/dist/lib.esm/eddsa-poseidon-blake-2b.js",
+      ),
+    },
+  },
   define: {
     global: "globalThis",
   },
