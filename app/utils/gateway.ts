@@ -1,6 +1,6 @@
 import type { Address, Hex } from "viem"
 
-const DEFAULT_GATEWAY_URL = "https://sneakey.blossom.deno.net"
+const DEFAULT_GATEWAY_URL = "https://sneaky-api.blossom.deno.net"
 
 export function getGatewayUrl(): string {
   const url = import.meta.env.VITE_GATEWAY_URL ?? DEFAULT_GATEWAY_URL
