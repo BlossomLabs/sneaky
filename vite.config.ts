@@ -1,8 +1,24 @@
-import path from "node:path"
+import { createRequire } from "node:module"
 import { reactRouter } from "@react-router/dev/vite"
 import tailwindcss from "@tailwindcss/vite"
 import { defineConfig } from "vite"
 import tsconfigPaths from "vite-tsconfig-paths"
+
+function resolveBlake2b() {
+  const require = createRequire(import.meta.url)
+  try {
+    return require
+      .resolve("@zk-kit/eddsa-poseidon/blake-2b")
+      .replace("lib.commonjs", "lib.esm")
+      .replace(".cjs", ".js")
+  } catch {
+    const sdkRequire = createRequire(require.resolve("@unlink-xyz/sdk"))
+    return sdkRequire
+      .resolve("@zk-kit/eddsa-poseidon/blake-2b")
+      .replace("lib.commonjs", "lib.esm")
+      .replace(".cjs", ".js")
+  }
+}
 
 export default defineConfig({
   plugins: [
@@ -12,10 +28,9 @@ export default defineConfig({
   ],
   resolve: {
     alias: {
-      "@zk-kit/eddsa-poseidon/blake-2b": path.resolve(
-        __dirname,
-        "node_modules/@zk-kit/eddsa-poseidon/dist/lib.esm/eddsa-poseidon-blake-2b.js",
-      ),
+      "@zk-kit/eddsa-poseidon/blake-2b": resolveBlake2b(),
+      // https://github.com/remix-run/react-router/issues/12568#issuecomment-2625776697
+      ...("Deno" in globalThis && { "react-dom/server": "react-dom/server.node" }),
     },
   },
   define: {
@@ -24,20 +39,4 @@ export default defineConfig({
   server: {
     port: 3000,
   },
-  ...denoWorkaround(),
 })
-
-function denoWorkaround() {
-  const isDeno = typeof globalThis !== "undefined" && "Deno" in globalThis;
-  if (!isDeno) {
-    return undefined;
-  }
-  // See: https://github.com/remix-run/react-router/issues/12568#issuecomment-2625776697
-  return {
-    resolve: {
-      alias: {
-        'react-dom/server': 'react-dom/server.node',
-      },
-    }
-  };
-}
