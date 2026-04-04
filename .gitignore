@@ -6,3 +6,7 @@ package-lock.json
 # React Router
 /.react-router/
 /build/
+
+# HardHat
+artifacts
+cache

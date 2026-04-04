@@ -1,24 +1,24 @@
 import { http } from "viem"
-import { baseSepolia } from "viem/chains"
+import { baseSepolia, mainnet } from "viem/chains"
 
 export const chains = {
+  [mainnet.id]: mainnet,
   [baseSepolia.id]: baseSepolia,
 }
 
-const chainId = baseSepolia.id
-
-export const transports = import.meta.env.VITE_ALCHEMY_API_KEY
-  ? {
-      [chainId]: http(
+export const transports = {
+  [mainnet.id]: import.meta.env.VITE_ALCHEMY_API_KEY
+    ? http(
+        `https://eth-mainnet.g.alchemy.com/v2/${import.meta.env.VITE_ALCHEMY_API_KEY}`,
+      )
+    : http(),
+  [baseSepolia.id]: import.meta.env.VITE_ALCHEMY_API_KEY
+    ? http(
         `https://base-sepolia.g.alchemy.com/v2/${import.meta.env.VITE_ALCHEMY_API_KEY}`,
-      ),
-    }
-  : import.meta.env.VITE_DRPC_API_KEY
-    ? {
-        [chainId]: http(
+      )
+    : import.meta.env.VITE_DRPC_API_KEY
+      ? http(
           `https://lb.drpc.live/base-sepolia/${import.meta.env.VITE_DRPC_API_KEY}`,
-        ),
-      }
-    : {
-        [chainId]: http(),
-      }
+        )
+      : http(),
+}

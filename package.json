@@ -11,6 +11,7 @@
     "format": "prettier --write \"**/*.{ts,tsx}\""
   },
   "dependencies": {
+    "@fluidkey/stealth-account-kit": "^1.1.1",
     "@fontsource-variable/geist": "^5.2.8",
     "@metamask/sdk": "^0.34.0",
     "@rainbow-me/rainbowkit": "^2.2.10",
