@@ -3,8 +3,6 @@ import { useAccount, useSignMessage, useWalletClient } from "wagmi"
 import {
   createPublicClient,
   createWalletClient as createViemWalletClient,
-  http,
-  parseEther,
 } from "viem"
 import type { Address, Hex } from "viem"
 import { baseSepolia } from "viem/chains"
@@ -69,11 +67,16 @@ export function useUnlink() {
     try {
       const mnemonic = await deriveMnemonic(signMessageAsync)
 
+      const publicClient = createPublicClient({
+        chain: baseSepolia,
+        transport: transports[baseSepolia.id],
+      })
+
       const unlink = createUnlink({
         engineUrl: UNLINK_ENGINE_URL,
         apiKey,
         account: unlinkAccount.fromMnemonic({ mnemonic }),
-        evm: unlinkEvm.fromViem({ walletClient }),
+        evm: unlinkEvm.fromViem({ walletClient, publicClient }),
       })
       clientRef.current = unlink
 

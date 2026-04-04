@@ -71,6 +71,8 @@ export default function Wallet() {
   const [withdrawAmount, setWithdrawAmount] = useState("")
   const [withdrawToken, setWithdrawToken] = useState(UNLINK_TEST_TOKEN)
 
+  const [debug, setDebug] = useState(false)
+
   const isScanning =
     step !== "idle" && step !== "done" && step !== "error"
 
@@ -78,6 +80,8 @@ export default function Wallet() {
     unlinkStep !== "idle" &&
     unlinkStep !== "ready" &&
     unlinkStep !== "error"
+
+  const showUnlink = debug || step === "done"
 
   const handleScan = (e?: FormEvent) => {
     e?.preventDefault()
@@ -92,7 +96,20 @@ export default function Wallet() {
       <Card className="w-full max-w-md">
         <CardHeader>
           <div className="flex items-center justify-between">
-            <CardTitle className="text-lg">My Wallet</CardTitle>
+            <div className="flex items-center gap-2">
+              <CardTitle className="text-lg">My Wallet</CardTitle>
+              <button
+                type="button"
+                onClick={() => setDebug((d) => !d)}
+                className={`rounded px-1.5 py-0.5 font-mono text-[10px] transition-colors ${
+                  debug
+                    ? "bg-primary text-primary-foreground"
+                    : "bg-muted text-muted-foreground hover:text-foreground"
+                }`}
+              >
+                DBG
+              </button>
+            </div>
             <ConnectButton
               showBalance={false}
               chainStatus="icon"
@@ -199,7 +216,7 @@ export default function Wallet() {
               )}
 
               {/* Unlink Private Transactions */}
-              {step === "done" && (
+              {showUnlink && (
                 <div className="flex flex-col gap-3 border-t pt-4">
                   <h3 className="text-sm font-medium">
                     Private Transactions (Unlink)
