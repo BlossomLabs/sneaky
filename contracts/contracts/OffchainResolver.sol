@@ -16,10 +16,13 @@ interface IResolverService {
 }
 
 contract OffchainResolver is IExtendedResolver, ERC165 {
+    address public owner;
     string public url;
     mapping(address => bool) public signers;
 
     event NewSigners(address[] signers);
+    event UrlChanged(string url);
+    event OwnershipTransferred(address indexed previousOwner, address indexed newOwner);
 
     error OffchainLookup(
         address sender,
@@ -29,10 +32,35 @@ contract OffchainResolver is IExtendedResolver, ERC165 {
         bytes extraData
     );
 
+    modifier onlyOwner() {
+        require(msg.sender == owner, "Not owner");
+        _;
+    }
+
     constructor(string memory _url, address[] memory _signers) {
+        owner = msg.sender;
         url = _url;
         for (uint i = 0; i < _signers.length; i++) {
             signers[_signers[i]] = true;
+        }
+        emit NewSigners(_signers);
+    }
+
+    function transferOwnership(address newOwner) external onlyOwner {
+        require(newOwner != address(0), "Zero address");
+        emit OwnershipTransferred(owner, newOwner);
+        owner = newOwner;
+    }
+
+    function setUrl(string calldata _url) external onlyOwner {
+        url = _url;
+        emit UrlChanged(_url);
+    }
+
+    function setSigners(address[] calldata _signers, bool[] calldata _enabled) external onlyOwner {
+        require(_signers.length == _enabled.length, "Length mismatch");
+        for (uint i = 0; i < _signers.length; i++) {
+            signers[_signers[i]] = _enabled[i];
         }
         emit NewSigners(_signers);
     }

@@ -1,0 +1,6 @@
+{
+  "OffchainResolverModule": {
+    "url": "https://sneaky-api.blossom.deno.net/",
+    "signers": ["0x32051601C3f8280f75712926340b9dccE6734d19"]
+  }
+}

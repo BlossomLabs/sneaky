@@ -58,7 +58,7 @@ export function useStealthAddresses() {
         const status = await fetchStatus(normalized)
         if (!status.registered) {
           throw new Error(
-            "This ENS name is not registered with Secret Handshake",
+            "This ENS name is not registered with Sneaky",
           )
         }
         if (!status.nonce || status.nonce === 0) {

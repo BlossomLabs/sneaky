@@ -1,4 +1,4 @@
 export default [
-  "https://sneakey.blossom.deno.net/{sender}/{data}.json",
-  ["0x2247866ef6eA737e6DFdFb4D092801b2Ce023071"],
+  "https://sneaky-api.blossom.deno.net/",
+  ["0x32051601C3f8280f75712926340b9dccE6734d19"],
 ];
