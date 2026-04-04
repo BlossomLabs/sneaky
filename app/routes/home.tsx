@@ -1,6 +1,7 @@
 import { useState, useCallback, type FormEvent } from "react"
 import { Link } from "react-router"
 import { ConnectButton } from "@rainbow-me/rainbowkit"
+import { Sun, Moon } from "lucide-react"
 import { useAccount, usePublicClient } from "wagmi"
 import { mainnet } from "viem/chains"
 import { normalize, namehash } from "viem/ens"
@@ -13,6 +14,7 @@ import { fetchStatus, type StatusResponse } from "~/utils/gateway"
 import { ENS_REGISTRY, ENS_REGISTRY_ABI } from "~/utils/ens"
 import { useRegister, type RegisterStep } from "~/hooks/use-register"
 import { useDeregister, type DeregisterStep } from "~/hooks/use-deregister"
+import { useDarkMode } from "~/hooks/use-dark-mode"
 import type { Address } from "viem"
 
 const STEP_LABELS: Record<RegisterStep, string> = {
@@ -36,6 +38,7 @@ const DEREG_STEP_LABELS: Record<DeregisterStep, string> = {
 
 export default function Home() {
   const { address, isConnected } = useAccount()
+  const { isDark, toggle: toggleDark } = useDarkMode()
   const mainnetClient = usePublicClient({ chainId: mainnet.id })
   const [nameInput, setNameInput] = useState("")
   const [lookupName, setLookupName] = useState("")
@@ -115,15 +118,24 @@ export default function Home() {
 
   return (
     <div className="flex min-h-svh items-start justify-center p-6 pt-[12vh]">
-      <Card className="w-full max-w-md">
+      <Card className="w-full max-w-lg bg-card/95 backdrop-blur-sm shadow-lg shadow-primary/5 border border-border/60 transition-shadow duration-300">
         <CardHeader>
           <div className="flex items-center justify-between">
-            <CardTitle className="text-lg">Sneaky</CardTitle>
-            <ConnectButton
-              showBalance={false}
-              chainStatus="icon"
-              accountStatus="avatar"
-            />
+            <CardTitle className="text-2xl font-semibold tracking-tight">Sneaky</CardTitle>
+            <div className="flex items-center gap-2">
+              <button
+                type="button"
+                onClick={toggleDark}
+                className="rounded-md p-1.5 text-muted-foreground transition-colors hover:bg-accent hover:text-accent-foreground"
+              >
+                {isDark ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}
+              </button>
+              <ConnectButton
+                showBalance={false}
+                chainStatus="icon"
+                accountStatus="avatar"
+              />
+            </div>
           </div>
         </CardHeader>
 
@@ -137,7 +149,6 @@ export default function Home() {
             />
             <Button
               type="submit"
-              variant="outline"
               disabled={lookupLoading || !nameInput.trim()}
             >
               {lookupLoading ? "Checking..." : "Lookup"}
@@ -151,10 +162,10 @@ export default function Home() {
           )}
 
           {showStatus && (
-            <div className="flex flex-col gap-3 rounded-lg border p-3">
+            <div className="flex flex-col gap-3 rounded-lg border p-3 bg-accent/50">
               <div className="flex items-center justify-between">
                 <span className="font-medium">{status.name}</span>
-                <Badge className="bg-emerald-600 text-white">Active</Badge>
+                <Badge className="bg-[#4A5A3A] text-white">Active</Badge>
               </div>
               <div className="flex flex-col gap-1 text-xs text-muted-foreground">
                 <div className="flex justify-between">
@@ -317,12 +328,9 @@ export default function Home() {
             </p>
           )}
 
-          <Link
-            to="/wallet"
-            className="text-xs text-muted-foreground underline underline-offset-2 hover:text-foreground"
-          >
-            View my stealth wallet
-          </Link>
+          <Button variant="ghost" size="sm" asChild className="self-start">
+            <Link to="/wallet">View my stealth wallet &rarr;</Link>
+          </Button>
         </CardContent>
       </Card>
     </div>

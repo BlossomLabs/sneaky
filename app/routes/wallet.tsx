@@ -1,7 +1,8 @@
 import { useState, type FormEvent } from "react"
 import { ConnectButton } from "@rainbow-me/rainbowkit"
+import { Sun, Moon, Copy, Check } from "lucide-react"
 import { useAccount } from "wagmi"
-import { formatEther, formatUnits } from "viem"
+import { formatEther, formatUnits, parseUnits } from "viem"
 import { Link } from "react-router"
 import { Card, CardContent, CardHeader, CardTitle } from "~/components/ui/card"
 import { Input } from "~/components/ui/input"
@@ -14,6 +15,7 @@ import {
   type ScanStep,
 } from "~/hooks/use-stealth-addresses"
 import { useUnlink, type UnlinkStep } from "~/hooks/use-unlink"
+import { useDarkMode } from "~/hooks/use-dark-mode"
 import { UNLINK_TEST_TOKEN, WETH_BASE_SEPOLIA } from "~/utils/unlink"
 
 const STEP_LABELS: Record<ScanStep, string> = {
@@ -47,6 +49,7 @@ function tokenLabel(token: string): string {
 
 export default function Wallet() {
   const { isConnected } = useAccount()
+  const { isDark, toggle: toggleDark } = useDarkMode()
   const [nameInput, setNameInput] = useState("")
   const { scan, reset, step, entries, totalScanned, error } =
     useStealthAddresses()
@@ -66,12 +69,13 @@ export default function Wallet() {
 
   const [transferRecipient, setTransferRecipient] = useState("")
   const [transferAmount, setTransferAmount] = useState("")
-  const [transferToken, setTransferToken] = useState(UNLINK_TEST_TOKEN)
+  const [transferToken, setTransferToken] = useState<string>(WETH_BASE_SEPOLIA)
   const [withdrawAddress, setWithdrawAddress] = useState("")
   const [withdrawAmount, setWithdrawAmount] = useState("")
-  const [withdrawToken, setWithdrawToken] = useState(UNLINK_TEST_TOKEN)
+  const [withdrawToken, setWithdrawToken] = useState<string>(WETH_BASE_SEPOLIA)
 
   const [debug, setDebug] = useState(false)
+  const [copied, setCopied] = useState(false)
 
   const isScanning =
     step !== "idle" && step !== "done" && step !== "error"
@@ -93,28 +97,37 @@ export default function Wallet() {
 
   return (
     <div className="flex min-h-svh items-start justify-center p-6 pt-[12vh]">
-      <Card className="w-full max-w-md">
+      <Card className="w-full max-w-lg bg-card/95 backdrop-blur-sm shadow-lg shadow-primary/5 border border-border/60 transition-shadow duration-300">
         <CardHeader>
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
-              <CardTitle className="text-lg">My Wallet</CardTitle>
+              <CardTitle className="text-2xl font-semibold tracking-tight">My Wallet</CardTitle>
               <button
                 type="button"
                 onClick={() => setDebug((d) => !d)}
                 className={`rounded px-1.5 py-0.5 font-mono text-[10px] transition-colors ${
                   debug
-                    ? "bg-primary text-primary-foreground"
-                    : "bg-muted text-muted-foreground hover:text-foreground"
+                    ? "bg-accent-foreground text-accent"
+                    : "bg-accent text-accent-foreground/60 hover:text-accent-foreground"
                 }`}
               >
                 DBG
               </button>
             </div>
-            <ConnectButton
-              showBalance={false}
-              chainStatus="icon"
-              accountStatus="avatar"
-            />
+            <div className="flex items-center gap-2">
+              <button
+                type="button"
+                onClick={toggleDark}
+                className="rounded-md p-1.5 text-muted-foreground transition-colors hover:bg-accent hover:text-accent-foreground"
+              >
+                {isDark ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}
+              </button>
+              <ConnectButton
+                showBalance={false}
+                chainStatus="icon"
+                accountStatus="avatar"
+              />
+            </div>
           </div>
         </CardHeader>
 
@@ -134,7 +147,6 @@ export default function Wallet() {
                 />
                 <Button
                   type="submit"
-                  variant="outline"
                   disabled={isScanning || !nameInput.trim()}
                 >
                   {isScanning ? "Scanning\u2026" : "Scan"}
@@ -182,14 +194,14 @@ export default function Wallet() {
                   {entries.map((entry) => (
                     <div
                       key={entry.nonce}
-                      className="flex flex-col gap-1 rounded-lg border p-3"
+                      className="flex flex-col gap-1 rounded-lg border p-3 transition-shadow duration-200 hover:shadow-md"
                     >
                       <div className="flex items-center justify-between">
                         <a
                           href={`https://sepolia.basescan.org/address/${entry.address}`}
                           target="_blank"
                           rel="noopener noreferrer"
-                          className="font-mono text-xs underline underline-offset-2 hover:text-foreground"
+                          className="font-mono text-xs underline underline-offset-2 transition-colors duration-200 hover:text-primary"
                         >
                           {entry.address.slice(0, 6)}&hellip;
                           {entry.address.slice(-4)}
@@ -217,7 +229,8 @@ export default function Wallet() {
 
               {/* Unlink Private Transactions */}
               {showUnlink && (
-                <div className="flex flex-col gap-3 border-t pt-4">
+                <div className="flex flex-col gap-3 pt-4">
+                  <div className="h-px bg-gradient-to-r from-transparent via-border to-transparent" />
                   <h3 className="text-sm font-medium">
                     Private Transactions (Unlink)
                   </h3>
@@ -260,14 +273,28 @@ export default function Wallet() {
                     <div className="flex flex-col gap-3">
                       {/* Address + Balances */}
                       <div className="flex flex-col gap-1 rounded-lg border p-3">
-                        <div className="flex items-center justify-between">
+                        <div className="flex flex-col gap-1">
                           <span className="text-xs text-muted-foreground">
                             Unlink Address
                           </span>
-                          <span className="font-mono text-xs">
-                            {unlinkAddress?.slice(0, 10)}&hellip;
-                            {unlinkAddress?.slice(-6)}
-                          </span>
+                          <div className="flex items-center gap-1.5">
+                            <span className="font-mono text-xs break-all">
+                              {unlinkAddress}
+                            </span>
+                            <button
+                              type="button"
+                              onClick={() => {
+                                if (unlinkAddress) {
+                                  navigator.clipboard.writeText(unlinkAddress)
+                                  setCopied(true)
+                                  setTimeout(() => setCopied(false), 2000)
+                                }
+                              }}
+                              className="shrink-0 rounded p-1 text-muted-foreground transition-colors hover:bg-accent hover:text-accent-foreground"
+                            >
+                              {copied ? <Check className="h-3.5 w-3.5" /> : <Copy className="h-3.5 w-3.5" />}
+                            </button>
+                          </div>
                         </div>
                         {unlinkBalances.length > 0 ? (
                           unlinkBalances.map((b) => (
@@ -329,7 +356,7 @@ export default function Wallet() {
                             unlinkTransfer(
                               transferRecipient.trim(),
                               transferToken,
-                              transferAmount,
+                              parseUnits(transferAmount, 18).toString(),
                             )
                           }}
                         >
@@ -342,6 +369,14 @@ export default function Wallet() {
                             }
                           />
                           <div className="flex gap-2">
+                            <select
+                              value={transferToken}
+                              onChange={(e) => setTransferToken(e.target.value)}
+                              className="rounded-md border border-input bg-background px-2 py-1 text-xs"
+                            >
+                              <option value={WETH_BASE_SEPOLIA}>WETH</option>
+                              <option value={UNLINK_TEST_TOKEN}>TEST</option>
+                            </select>
                             <Input
                               placeholder="Amount"
                               type="text"
@@ -353,7 +388,6 @@ export default function Wallet() {
                             />
                             <Button
                               type="submit"
-                              variant="outline"
                               size="sm"
                               disabled={
                                 !transferRecipient.trim() || !transferAmount
@@ -376,7 +410,7 @@ export default function Wallet() {
                             unlinkWithdraw(
                               withdrawAddress.trim(),
                               withdrawToken,
-                              withdrawAmount,
+                              parseUnits(withdrawAmount, 18).toString(),
                             )
                           }}
                         >
@@ -389,6 +423,14 @@ export default function Wallet() {
                             }
                           />
                           <div className="flex gap-2">
+                            <select
+                              value={withdrawToken}
+                              onChange={(e) => setWithdrawToken(e.target.value)}
+                              className="rounded-md border border-input bg-background px-2 py-1 text-xs"
+                            >
+                              <option value={WETH_BASE_SEPOLIA}>WETH</option>
+                              <option value={UNLINK_TEST_TOKEN}>TEST</option>
+                            </select>
                             <Input
                               placeholder="Amount"
                               type="text"
@@ -400,7 +442,6 @@ export default function Wallet() {
                             />
                             <Button
                               type="submit"
-                              variant="outline"
                               size="sm"
                               disabled={
                                 !withdrawAddress.trim() || !withdrawAmount

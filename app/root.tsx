@@ -39,6 +39,11 @@ export function Layout({ children }: { children: React.ReactNode }) {
         <Links />
       </head>
       <body>
+        <div className="pointer-events-none fixed inset-0 overflow-hidden">
+          <div className="absolute -top-40 -right-40 h-96 w-96 rounded-full bg-[#D4956B]/15 blur-3xl" />
+          <div className="absolute -bottom-40 -left-40 h-80 w-80 rounded-full bg-[#A8C8D8]/15 blur-3xl" />
+          <div className="absolute top-1/2 left-1/2 h-64 w-64 -translate-x-1/2 -translate-y-1/2 rounded-full bg-[#D4B870]/8 blur-3xl" />
+        </div>
         {children}
         <ScrollRestoration />
         <Scripts />

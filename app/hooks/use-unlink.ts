@@ -1,5 +1,5 @@
 import { useCallback, useRef, useState } from "react"
-import { useAccount, useSignMessage, useWalletClient } from "wagmi"
+import { useAccount, useSignMessage, useSwitchChain, useWalletClient } from "wagmi"
 import {
   createPublicClient,
   createWalletClient as createViemWalletClient,
@@ -42,6 +42,7 @@ export function useUnlink() {
   const { address } = useAccount()
   const { signMessageAsync } = useSignMessage()
   const { data: walletClient } = useWalletClient()
+  const { switchChainAsync } = useSwitchChain()
   const clientRef = useRef<UnlinkClient | null>(null)
 
   const [step, setStep] = useState<UnlinkStep>("idle")
@@ -99,6 +100,8 @@ export function useUnlink() {
       setError(null)
 
       try {
+        await switchChainAsync({ chainId: baseSepolia.id })
+
         const funded = entries.filter(
           (e) => e.stealthPrivateKey && e.balance > 0n,
         )
@@ -120,11 +123,13 @@ export function useUnlink() {
             chain: baseSepolia,
             transport: transports[baseSepolia.id],
           })
+          // Fetch live balance (scan results may be stale from prior attempts)
+          const currentBalance = await publicClient.getBalance({ address: account.address })
           const gasPrice = await publicClient.getGasPrice()
           const gasCost = 21000n * gasPrice * 2n // 2x buffer
-          if (entry.balance <= gasCost) continue
+          if (currentBalance <= gasCost) continue
 
-          const value = entry.balance - gasCost
+          const value = currentBalance - gasCost
           const hash = await stealthWallet.sendTransaction({
             to: address,
             value,
@@ -140,7 +145,8 @@ export function useUnlink() {
 
         // 2. Wrap ETH to WETH
         setStep("wrapping")
-        const wrapHash = await walletClient.writeContract({
+        const wrapHash = await walletClient!.writeContract({
+          chain: baseSepolia,
           address: WETH_BASE_SEPOLIA,
           abi: WETH_ABI,
           functionName: "deposit",
