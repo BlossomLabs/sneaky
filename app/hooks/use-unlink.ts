@@ -1,5 +1,5 @@
 import { useCallback, useRef, useState } from "react"
-import { useAccount, useSignMessage, useSwitchChain, useWalletClient } from "wagmi"
+import { useAccount, useSignMessage, useWalletClient } from "wagmi"
 import {
   createPublicClient,
   createWalletClient as createViemWalletClient,
@@ -42,7 +42,6 @@ export function useUnlink() {
   const { address } = useAccount()
   const { signMessageAsync } = useSignMessage()
   const { data: walletClient } = useWalletClient()
-  const { switchChainAsync } = useSwitchChain()
   const clientRef = useRef<UnlinkClient | null>(null)
 
   const [step, setStep] = useState<UnlinkStep>("idle")
@@ -100,8 +99,6 @@ export function useUnlink() {
       setError(null)
 
       try {
-        await switchChainAsync({ chainId: baseSepolia.id })
-
         const funded = entries.filter(
           (e) => e.stealthPrivateKey && e.balance > 0n,
         )
