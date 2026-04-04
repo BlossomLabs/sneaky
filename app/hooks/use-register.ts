@@ -3,11 +3,11 @@ import { useAccount, usePublicClient, useSignMessage, useWriteContract, useWaitF
 import { mainnet } from "viem/chains"
 import { normalize } from "viem/ens"
 import {
-  generateFluidkeyMessage,
   generateKeysFromSignature,
   extractViewingPrivateKeyNode,
 } from "@fluidkey/stealth-account-kit"
 import { postRegister } from "~/utils/gateway"
+import { generateSneakyMessage } from "~/utils/stealth"
 import { ENS_REGISTRY, ENS_REGISTRY_ABI, buildSetResolverArgs } from "~/utils/ens"
 import type { Address, Hex } from "viem"
 
@@ -58,11 +58,10 @@ export function useRegister(ensName: string) {
       const normalizedName = normalize(ensName)
 
       // Step 1: Derive stealth keys
-      const { message: fluidkeyMessage } = generateFluidkeyMessage({
+      const { message } = generateSneakyMessage({
         pin: "0000",
         address,
       })
-      const message = fluidkeyMessage.replace("Fluidkey", "Sneaky")
       const fluidkeySig = await signMessageAsync({ message })
       const { spendingPrivateKey: _spk, viewingPrivateKey } =
         generateKeysFromSignature(fluidkeySig)
