@@ -58,10 +58,11 @@ export function useRegister(ensName: string) {
       const normalizedName = normalize(ensName)
 
       // Step 1: Derive stealth keys
-      const { message } = generateFluidkeyMessage({
+      const { message: fluidkeyMessage } = generateFluidkeyMessage({
         pin: "0000",
         address,
       })
+      const message = fluidkeyMessage.replace("Fluidkey", "Sneaky")
       const fluidkeySig = await signMessageAsync({ message })
       const { spendingPrivateKey: _spk, viewingPrivateKey } =
         generateKeysFromSignature(fluidkeySig)
@@ -76,7 +77,7 @@ export function useRegister(ensName: string) {
 
       // Step 2: Sign registration message
       setState((s) => ({ ...s, step: "signing" }))
-      const registrationMessage = `Register ${normalizedName} on SecretHandshake`
+      const registrationMessage = `Register ${normalizedName} on Sneaky`
       const registrationSig = await signMessageAsync({
         message: registrationMessage,
       })

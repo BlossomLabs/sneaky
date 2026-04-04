@@ -12,11 +12,11 @@ import { useRegister, type RegisterStep } from "~/hooks/use-register"
 
 const STEP_LABELS: Record<RegisterStep, string> = {
   idle: "",
-  "deriving-keys": "Generating stealth keys\u2026",
-  signing: "Sign registration message\u2026",
-  "setting-resolver": "Setting ENS resolver\u2026",
-  "confirming-tx": "Waiting for confirmation\u2026",
-  registering: "Registering with gateway\u2026",
+  "deriving-keys": "Generating stealth keys...",
+  signing: "Sign registration message...",
+  "setting-resolver": "Setting ENS resolver...",
+  "confirming-tx": "Waiting for confirmation...",
+  registering: "Registering with gateway...",
   done: "Registration complete",
 }
 
@@ -74,7 +74,7 @@ export default function Home() {
       <Card className="w-full max-w-md">
         <CardHeader>
           <div className="flex items-center justify-between">
-            <CardTitle className="text-lg">Secret Handshake</CardTitle>
+            <CardTitle className="text-lg">Sneaky</CardTitle>
             <ConnectButton
               showBalance={false}
               chainStatus="icon"
@@ -96,7 +96,7 @@ export default function Home() {
               variant="outline"
               disabled={lookupLoading || !nameInput.trim()}
             >
-              {lookupLoading ? "Checking\u2026" : "Lookup"}
+              {lookupLoading ? "Checking..." : "Lookup"}
             </Button>
           </form>
 
@@ -116,7 +116,7 @@ export default function Home() {
                 <div className="flex justify-between">
                   <span>Owner</span>
                   <span className="font-mono">
-                    {status.owner?.slice(0, 6)}\u2026{status.owner?.slice(-4)}
+                    {status.owner?.slice(0, 6)}...{status.owner?.slice(-4)}
                   </span>
                 </div>
                 <div className="flex justify-between">

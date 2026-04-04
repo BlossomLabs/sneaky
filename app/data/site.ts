@@ -1,1 +1,1 @@
-export const SITE_NAME = "Secret Handshake"
+export const SITE_NAME = "Sneaky"
