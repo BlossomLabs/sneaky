@@ -1,0 +1,10 @@
+{
+  "imports": {
+    "viem": "npm:viem@2",
+    "viem/accounts": "npm:viem@2/accounts",
+    "viem/utils": "npm:viem@2/utils",
+    "viem/chains": "npm:viem@2/chains",
+    "viem/ens": "npm:viem@2/ens",
+    "@fluidkey/stealth-account-kit": "npm:@fluidkey/stealth-account-kit"
+  }
+}
