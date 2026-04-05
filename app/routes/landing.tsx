@@ -37,28 +37,17 @@ export default function Landing() {
           alt="Sneaky — Stealth addresses for ENS"
           className="w-full h-[60vh] object-cover object-bottom"
         />
-        <div className="absolute inset-0 bg-gradient-to-t from-background via-background/40 to-transparent" />
+        <div className="absolute inset-0 bg-gradient-to-t from-background via-background/60 to-background/30" />
         <div className="absolute inset-0 flex flex-col items-center justify-center px-6 text-center">
-          <h1 className="text-4xl sm:text-5xl font-bold tracking-tight leading-tight max-w-2xl">
-            Stealth addresses for ENS
-          </h1>
-          <p className="mt-4 text-lg sm:text-xl text-muted-foreground max-w-xl">
-            Every time someone resolves your ENS name, they get a fresh one-time address that only you can spend from.
-          </p>
-        </div>
-      </section>
-
-      {/* Problem */}
-      <section className="mx-auto max-w-3xl px-6 py-20">
-        <div className="rounded-2xl border border-white/20 bg-white/10 backdrop-blur-lg p-10 shadow-xl dark:border-white/10 dark:bg-white/5">
-          <h2 className="text-2xl sm:text-3xl font-semibold tracking-tight text-center">
-            Your ENS name is public. Your transactions shouldn't be.
-          </h2>
-          <p className="mt-6 text-center text-muted-foreground leading-relaxed max-w-2xl mx-auto">
-            When you share <strong>yourname.eth</strong>, anyone can look up your address and see every transaction
-            you've ever made. Sneaky fixes that by giving every sender a unique, one-time stealth address -- so your
-            financial activity stays private even though your identity is public.
-          </p>
+          <div className="rounded-2xl border border-white/15 bg-background/20 backdrop-blur-[2px] p-8 sm:p-10 shadow-2xl max-w-2xl dark:bg-background/15">
+            <h1 className="text-2xl sm:text-4xl font-bold tracking-tight leading-tight">
+              Your ENS name is public. Your transactions shouldn't be.
+            </h1>
+            <p className="mt-4 text-base sm:text-lg text-muted-foreground leading-relaxed">
+              Sneaky gives every sender a unique, one-time address that only you can spend from -- so your
+              financial activity stays private even though your identity is public.
+            </p>
+          </div>
         </div>
       </section>
 
