@@ -121,7 +121,10 @@ export default function Home() {
       <Card className="w-full max-w-lg bg-card/95 backdrop-blur-sm shadow-lg shadow-primary/5 border border-border/60 transition-shadow duration-300">
         <CardHeader>
           <div className="flex items-center justify-between">
-            <CardTitle className="text-2xl font-semibold tracking-tight">Sneaky</CardTitle>
+            <CardTitle className="flex items-center gap-2 text-2xl font-semibold tracking-tight">
+              <img src="/logo.svg" alt="" className="h-7 w-7" />
+              Sneaky
+            </CardTitle>
             <div className="flex items-center gap-2">
               <button
                 type="button"

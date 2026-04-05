@@ -11,7 +11,10 @@ export default function Landing() {
       {/* Nav */}
       <nav className="fixed top-0 z-50 w-full backdrop-blur-md bg-background/70 border-b border-border/40">
         <div className="mx-auto flex max-w-5xl items-center justify-between px-6 py-3">
-          <span className="text-lg font-semibold tracking-tight">Sneaky</span>
+          <span className="flex items-center gap-2 text-lg font-semibold tracking-tight">
+            <img src="/logo.svg" alt="" className="h-6 w-6" />
+            Sneaky
+          </span>
           <div className="flex items-center gap-3">
             <button
               type="button"
