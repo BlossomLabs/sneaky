@@ -15,18 +15,13 @@ export default function Landing() {
             <img src="/logo.svg" alt="" className="h-6 w-6" />
             Sneaky
           </span>
-          <div className="flex items-center gap-3">
-            <button
-              type="button"
-              onClick={toggleDark}
-              className="rounded-md p-1.5 text-muted-foreground transition-colors hover:bg-accent hover:text-accent-foreground"
-            >
-              {isDark ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}
-            </button>
-            <Button asChild size="sm">
-              <Link to="/app">Launch App</Link>
-            </Button>
-          </div>
+          <button
+            type="button"
+            onClick={toggleDark}
+            className="rounded-md p-1.5 text-muted-foreground transition-colors hover:bg-accent hover:text-accent-foreground"
+          >
+            {isDark ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}
+          </button>
         </div>
       </nav>
 
@@ -35,18 +30,24 @@ export default function Landing() {
         <img
           src="/hero.png"
           alt="Sneaky — Stealth addresses for ENS"
-          className="w-full h-[60vh] object-cover object-bottom"
+          className="w-full h-[70vh] object-cover object-bottom"
         />
-        <div className="absolute inset-0 bg-gradient-to-t from-background via-background/60 to-background/30" />
-        <div className="absolute inset-0 flex flex-col items-center justify-center px-6 text-center">
-          <div className="rounded-2xl border border-white/15 bg-background/20 backdrop-blur-[2px] p-8 sm:p-10 shadow-2xl max-w-2xl dark:bg-background/15">
-            <h1 className="text-2xl sm:text-4xl font-bold tracking-tight leading-tight">
+        <div className="absolute inset-0 bg-gradient-to-t from-background via-background/20 to-transparent" />
+        <div className="absolute inset-0 flex flex-col items-center justify-end pb-16 sm:pb-20 px-6 text-center">
+          <div className="rounded-3xl border border-white/20 bg-white/70 dark:bg-black/60 backdrop-blur-xl p-8 sm:p-12 shadow-[0_8px_60px_-12px_rgba(0,0,0,0.25)] max-w-2xl ring-1 ring-black/5 dark:ring-white/10">
+            <img src="/logo.svg" alt="Sneaky logo" className="mx-auto mb-5 h-12 w-12" />
+            <h1 className="text-2xl sm:text-4xl font-bold tracking-tight leading-tight text-gray-900 dark:text-white">
               Your ENS name is public. Your transactions shouldn't be.
             </h1>
-            <p className="mt-4 text-base sm:text-lg text-muted-foreground leading-relaxed">
-              Sneaky gives every sender a unique, one-time address that only you can spend from -- so your
+            <p className="mt-4 text-base sm:text-lg text-gray-600 dark:text-gray-300 leading-relaxed">
+              Sneaky gives every sender a unique, one-time address that only you can spend from — so your
               financial activity stays private even though your identity is public.
             </p>
+            <div className="mt-8">
+              <Button asChild size="lg" className="text-base px-10 shadow-lg">
+                <Link to="/app">Launch App</Link>
+              </Button>
+            </div>
           </div>
         </div>
       </section>
