@@ -540,7 +540,7 @@ export default function Wallet() {
           )}
 
           <Button variant="ghost" size="sm" asChild className="self-start">
-            <Link to="/">&larr; Back home</Link>
+            <Link to="/app">&larr; Back home</Link>
           </Button>
         </CardContent>
       </Card>

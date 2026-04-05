@@ -8,7 +8,7 @@ export default function About() {
         <h1 className="font-medium">About</h1>
         <p>This route uses React Router.</p>
         <Button variant="outline" asChild>
-          <Link to="/">Back home</Link>
+          <Link to="/app">Back home</Link>
         </Button>
       </div>
     </div>
