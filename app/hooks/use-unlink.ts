@@ -175,6 +175,34 @@ export function useUnlink() {
     [address, walletClient, refreshBalance],
   )
 
+  const depositWeth = useCallback(
+    async (amount: string) => {
+      const client = clientRef.current
+      if (!client) return
+      setStep("depositing")
+      setError(null)
+      try {
+        await client.ensureErc20Approval({
+          token: WETH_BASE_SEPOLIA,
+          amount,
+        })
+        const { txId } = await client.deposit({
+          token: WETH_BASE_SEPOLIA,
+          amount,
+          deadline: Math.floor(Date.now() / 1000) + 3600,
+        })
+        await client.pollTransactionStatus(txId)
+        await refreshBalance()
+        setStep("ready")
+      } catch (err) {
+        const msg = err instanceof Error ? err.message : String(err)
+        setError(msg.includes("User rejected") ? "Signature rejected" : msg)
+        setStep("error")
+      }
+    },
+    [refreshBalance],
+  )
+
   const transfer = useCallback(
     async (recipient: string, token: string, amount: string) => {
       const client = clientRef.current
@@ -234,6 +262,7 @@ export function useUnlink() {
   return {
     connect,
     deposit,
+    depositWeth,
     transfer,
     withdraw,
     refreshBalance,

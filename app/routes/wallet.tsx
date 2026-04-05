@@ -57,6 +57,7 @@ export default function Wallet() {
   const {
     connect: connectUnlink,
     deposit: unlinkDeposit,
+    depositWeth: unlinkDepositWeth,
     transfer: unlinkTransfer,
     withdraw: unlinkWithdraw,
     refreshBalance,
@@ -73,6 +74,7 @@ export default function Wallet() {
   const [withdrawAddress, setWithdrawAddress] = useState("")
   const [withdrawAmount, setWithdrawAmount] = useState("")
   const [withdrawToken, setWithdrawToken] = useState<string>(WETH_BASE_SEPOLIA)
+  const [depositAmount, setDepositAmount] = useState("")
 
   const [debug, setDebug] = useState(false)
   const [copied, setCopied] = useState(false)
@@ -343,6 +345,40 @@ export default function Wallet() {
                             and deposits privately.
                           </p>
                         </div>
+                      )}
+
+                      {/* Deposit WETH */}
+                      {unlinkStep === "ready" && (
+                        <form
+                          className="flex flex-col gap-2"
+                          onSubmit={(e) => {
+                            e.preventDefault()
+                            if (!depositAmount) return
+                            unlinkDepositWeth(
+                              parseUnits(depositAmount, 18).toString(),
+                            )
+                          }}
+                        >
+                          <Label className="text-xs">Deposit WETH</Label>
+                          <div className="flex gap-2">
+                            <Input
+                              placeholder="Amount"
+                              type="text"
+                              value={depositAmount}
+                              onChange={(e) =>
+                                setDepositAmount(e.target.value)
+                              }
+                              className="flex-1"
+                            />
+                            <Button
+                              type="submit"
+                              size="sm"
+                              disabled={!depositAmount}
+                            >
+                              Deposit
+                            </Button>
+                          </div>
+                        </form>
                       )}
 
                       {/* Transfer */}
