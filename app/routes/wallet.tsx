@@ -2,7 +2,7 @@ import { useState, type FormEvent } from "react"
 import { ConnectButton } from "@rainbow-me/rainbowkit"
 import { Sun, Moon, Copy, Check } from "lucide-react"
 import { useAccount } from "wagmi"
-import { formatEther, formatUnits, parseUnits } from "viem"
+import { formatEther, formatUnits, parseUnits, type Address } from "viem"
 import { Link } from "react-router"
 import { Card, CardContent, CardHeader, CardTitle } from "~/components/ui/card"
 import { Input } from "~/components/ui/input"
@@ -56,7 +56,8 @@ export default function Wallet() {
 
   const {
     connect: connectUnlink,
-    deposit: unlinkDeposit,
+    sweep: unlinkSweep,
+    sweepToUnlink: unlinkSweepToUnlink,
     depositWeth: unlinkDepositWeth,
     transfer: unlinkTransfer,
     withdraw: unlinkWithdraw,
@@ -75,6 +76,8 @@ export default function Wallet() {
   const [withdrawAmount, setWithdrawAmount] = useState("")
   const [withdrawToken, setWithdrawToken] = useState<string>(WETH_BASE_SEPOLIA)
   const [depositAmount, setDepositAmount] = useState("")
+  const [sweepDest, setSweepDest] = useState<"unlink" | "address">("unlink")
+  const [sweepAddress, setSweepAddress] = useState("")
 
   const [debug, setDebug] = useState(false)
   const [copied, setCopied] = useState(false)
@@ -329,21 +332,51 @@ export default function Wallet() {
                         </div>
                       )}
 
-                      {/* Sweep & Deposit */}
+                      {/* Sweep */}
                       {entries.length > 0 && unlinkStep === "ready" && (
-                        <div className="flex flex-col gap-1">
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            onClick={() => unlinkDeposit(entries)}
-                          >
-                            Sweep &amp; Deposit to Unlink
-                          </Button>
-                          <p className="text-xs text-muted-foreground">
-                            Sweeps ETH from {entries.length} stealth address
-                            {entries.length !== 1 ? "es" : ""}, wraps to WETH,
-                            and deposits privately.
-                          </p>
+                        <div className="flex flex-col gap-2">
+                          <Label className="text-xs">
+                            Sweep {entries.length} stealth address
+                            {entries.length !== 1 ? "es" : ""}
+                          </Label>
+                          <div className="flex gap-2">
+                            <select
+                              value={sweepDest}
+                              onChange={(e) =>
+                                setSweepDest(e.target.value as "unlink" | "address")
+                              }
+                              className="rounded-md border border-input bg-background px-2 py-1 text-xs"
+                            >
+                              <option value="unlink">To Unlink</option>
+                              <option value="address">To Address</option>
+                            </select>
+                            {sweepDest === "address" && (
+                              <Input
+                                placeholder="0x..."
+                                value={sweepAddress}
+                                onChange={(e) => setSweepAddress(e.target.value)}
+                                className="flex-1"
+                              />
+                            )}
+                            <Button
+                              size="sm"
+                              disabled={
+                                sweepDest === "address" && !sweepAddress.trim()
+                              }
+                              onClick={() => {
+                                if (sweepDest === "unlink") {
+                                  unlinkSweepToUnlink(entries)
+                                } else {
+                                  unlinkSweep(
+                                    entries,
+                                    sweepAddress.trim() as Address,
+                                  )
+                                }
+                              }}
+                            >
+                              Sweep
+                            </Button>
+                          </div>
                         </div>
                       )}
 

@@ -92,20 +92,67 @@ export function useUnlink() {
     }
   }, [address, walletClient, apiKey, signMessageAsync, refreshBalance])
 
-  const deposit = useCallback(
-    async (entries: StealthEntry[]) => {
-      const client = clientRef.current
-      if (!client || !address || !walletClient) return
+  const sweep = useCallback(
+    async (entries: StealthEntry[], to: Address) => {
+      setStep("sweeping")
       setError(null)
-
       try {
         const funded = entries.filter(
           (e) => e.stealthPrivateKey && e.balance > 0n,
         )
-        if (funded.length === 0) return
+        if (funded.length === 0) {
+          setStep("ready")
+          return
+        }
 
-        // 1. Sweep ETH from stealth addresses to connected wallet
-        setStep("sweeping")
+        const { privateKeyToAccount } = await import("viem/accounts")
+        const publicClient = createPublicClient({
+          chain: baseSepolia,
+          transport: transports[baseSepolia.id],
+        })
+
+        for (const entry of funded) {
+          const account = privateKeyToAccount(entry.stealthPrivateKey as Hex)
+          const stealthWallet = createViemWalletClient({
+            account,
+            chain: baseSepolia,
+            transport: transports[baseSepolia.id],
+          })
+          const currentBalance = await publicClient.getBalance({ address: account.address })
+          const gasPrice = await publicClient.getGasPrice()
+          const gasCost = 21000n * gasPrice * 2n
+          if (currentBalance <= gasCost) continue
+
+          const value = currentBalance - gasCost
+          const hash = await stealthWallet.sendTransaction({ to, value })
+          await publicClient.waitForTransactionReceipt({ hash })
+        }
+
+        setStep("ready")
+      } catch (err) {
+        const msg = err instanceof Error ? err.message : String(err)
+        setError(msg.includes("User rejected") ? "Signature rejected" : msg)
+        setStep("error")
+      }
+    },
+    [],
+  )
+
+  const sweepToUnlink = useCallback(
+    async (entries: StealthEntry[]) => {
+      const client = clientRef.current
+      if (!client || !address || !walletClient) return
+      setStep("sweeping")
+      setError(null)
+      try {
+        const funded = entries.filter(
+          (e) => e.stealthPrivateKey && e.balance > 0n,
+        )
+        if (funded.length === 0) {
+          setStep("ready")
+          return
+        }
+
         const { privateKeyToAccount } = await import("viem/accounts")
         const publicClient = createPublicClient({
           chain: baseSepolia,
@@ -120,17 +167,13 @@ export function useUnlink() {
             chain: baseSepolia,
             transport: transports[baseSepolia.id],
           })
-          // Fetch live balance (scan results may be stale from prior attempts)
           const currentBalance = await publicClient.getBalance({ address: account.address })
           const gasPrice = await publicClient.getGasPrice()
-          const gasCost = 21000n * gasPrice * 2n // 2x buffer
+          const gasCost = 21000n * gasPrice * 2n
           if (currentBalance <= gasCost) continue
 
           const value = currentBalance - gasCost
-          const hash = await stealthWallet.sendTransaction({
-            to: address,
-            value,
-          })
+          const hash = await stealthWallet.sendTransaction({ to: address, value })
           await publicClient.waitForTransactionReceipt({ hash })
           totalSwept += value
         }
@@ -140,7 +183,6 @@ export function useUnlink() {
           return
         }
 
-        // 2. Wrap ETH to WETH
         setStep("wrapping")
         const wrapHash = await walletClient!.writeContract({
           chain: baseSepolia,
@@ -151,7 +193,6 @@ export function useUnlink() {
         })
         await publicClient.waitForTransactionReceipt({ hash: wrapHash })
 
-        // 3. Approve + deposit into Unlink
         setStep("depositing")
         await client.ensureErc20Approval({
           token: WETH_BASE_SEPOLIA,
@@ -261,7 +302,8 @@ export function useUnlink() {
 
   return {
     connect,
-    deposit,
+    sweep,
+    sweepToUnlink,
     depositWeth,
     transfer,
     withdraw,
