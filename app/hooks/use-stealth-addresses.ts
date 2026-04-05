@@ -4,7 +4,6 @@ import { createPublicClient, formatEther } from "viem"
 import { baseSepolia } from "viem/chains"
 import type { Address, Hex } from "viem"
 import {
-  generateFluidkeyMessage,
   generateKeysFromSignature,
   extractViewingPrivateKeyNode,
   generateEphemeralPrivateKey,
@@ -14,6 +13,7 @@ import {
 import { fetchStatus } from "~/utils/gateway"
 import { transports } from "~/data/supported-chains"
 import { normalize } from "viem/ens"
+import { generateSneakyMessage } from "~/utils/stealth"
 
 export type ScanStep =
   | "idle"
@@ -68,7 +68,7 @@ export function useStealthAddresses() {
 
         // 2. Sign fluidkey message to derive keys
         setStep("signing")
-        const { message } = generateFluidkeyMessage({
+        const { message } = generateSneakyMessage({
           pin: "0000",
           address,
         })
