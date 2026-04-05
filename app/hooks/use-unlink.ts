@@ -43,6 +43,7 @@ export function useUnlink() {
   const { signMessageAsync } = useSignMessage()
   const { data: walletClient } = useWalletClient()
   const clientRef = useRef<UnlinkClient | null>(null)
+  const mnemonicRef = useRef<string | null>(null)
 
   const [step, setStep] = useState<UnlinkStep>("idle")
   const [unlinkAddress, setUnlinkAddress] = useState<string | null>(null)
@@ -66,6 +67,7 @@ export function useUnlink() {
     setError(null)
     try {
       const mnemonic = await deriveMnemonic(signMessageAsync)
+      mnemonicRef.current = mnemonic
 
       const publicClient = createPublicClient({
         chain: baseSepolia,
@@ -140,9 +142,8 @@ export function useUnlink() {
 
   const sweepToUnlink = useCallback(
     async (entries: StealthEntry[]) => {
-      const client = clientRef.current
-      if (!client || !address || !walletClient) return
-      setStep("sweeping")
+      const mnemonic = mnemonicRef.current
+      if (!mnemonic || !apiKey) return
       setError(null)
       try {
         const funded = entries.filter(
@@ -159,7 +160,6 @@ export function useUnlink() {
           transport: transports[baseSepolia.id],
         })
 
-        let totalSwept = 0n
         for (const entry of funded) {
           const account = privateKeyToAccount(entry.stealthPrivateKey as Hex)
           const stealthWallet = createViemWalletClient({
@@ -169,41 +169,40 @@ export function useUnlink() {
           })
           const currentBalance = await publicClient.getBalance({ address: account.address })
           const gasPrice = await publicClient.getGasPrice()
-          const gasCost = 21000n * gasPrice * 2n
+          // WETH deposit ~46k + ERC-20 approve ~46k + Unlink deposit ~200k
+          const gasCost = 350_000n * gasPrice * 2n
           if (currentBalance <= gasCost) continue
 
           const value = currentBalance - gasCost
-          const hash = await stealthWallet.sendTransaction({ to: address, value })
-          await publicClient.waitForTransactionReceipt({ hash })
-          totalSwept += value
+
+          setStep("wrapping")
+          const wrapHash = await stealthWallet.writeContract({
+            chain: baseSepolia,
+            address: WETH_BASE_SEPOLIA,
+            abi: WETH_ABI,
+            functionName: "deposit",
+            value,
+          })
+          await publicClient.waitForTransactionReceipt({ hash: wrapHash })
+
+          setStep("depositing")
+          const stealthUnlink = createUnlink({
+            engineUrl: UNLINK_ENGINE_URL,
+            apiKey,
+            account: unlinkAccount.fromMnemonic({ mnemonic }),
+            evm: unlinkEvm.fromViem({ walletClient: stealthWallet, publicClient }),
+          })
+          await stealthUnlink.ensureErc20Approval({
+            token: WETH_BASE_SEPOLIA,
+            amount: value.toString(),
+          })
+          const { txId } = await stealthUnlink.deposit({
+            token: WETH_BASE_SEPOLIA,
+            amount: value.toString(),
+            deadline: Math.floor(Date.now() / 1000) + 3600,
+          })
+          await stealthUnlink.pollTransactionStatus(txId)
         }
-
-        if (totalSwept === 0n) {
-          setStep("ready")
-          return
-        }
-
-        setStep("wrapping")
-        const wrapHash = await walletClient!.writeContract({
-          chain: baseSepolia,
-          address: WETH_BASE_SEPOLIA,
-          abi: WETH_ABI,
-          functionName: "deposit",
-          value: totalSwept,
-        })
-        await publicClient.waitForTransactionReceipt({ hash: wrapHash })
-
-        setStep("depositing")
-        await client.ensureErc20Approval({
-          token: WETH_BASE_SEPOLIA,
-          amount: totalSwept.toString(),
-        })
-        const { txId } = await client.deposit({
-          token: WETH_BASE_SEPOLIA,
-          amount: totalSwept.toString(),
-          deadline: Math.floor(Date.now() / 1000) + 3600,
-        })
-        await client.pollTransactionStatus(txId)
 
         await refreshBalance()
         setStep("ready")
@@ -213,7 +212,7 @@ export function useUnlink() {
         setStep("error")
       }
     },
-    [address, walletClient, refreshBalance],
+    [apiKey, refreshBalance],
   )
 
   const depositWeth = useCallback(
@@ -298,6 +297,7 @@ export function useUnlink() {
     setBalances([])
     setError(null)
     clientRef.current = null
+    mnemonicRef.current = null
   }, [])
 
   return {
